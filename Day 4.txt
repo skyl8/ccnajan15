@@ -1,0 +1,291 @@
+Task1: Fundamentals of Cisco Security:
+20% of Exam: access-list, nat, ssh, dhcp
+ssh: secure shell = Much better than Telnet
+How to enable ssh on CoreBABA:
+config T
+aaa new-model
+username admin privilege 15 secret password
+ip domain-name rivanit.com
+crypto key generate rsa
+ip ssh version 2
+end
+
+Task2: para bilis:
+CoreBABA:
+conf T
+no aaa new-model
+line vty 0 14
+no login
+PC> telnet 10.11.1.4
+
+TASK3: Access-list: Control who gets access to your devices:
+allow only your PC: to connect.
+
+CoreBABA: acl 1-99
+config T
+no access-list 1
+access-list 1 permit host 10.11.1.10
+access-list 1 permit host 10.11.100.8
+line vty 0 14
+no access-class 1 in
+end
+
+
+GAWA:
+make access-list 2: permit 10.11.1.10 and 10.12.1.10 and 
+CUCM 10.11.100.8 , 10.12.100.8
+no access-list 2
+access-list 2 permit host 10.11.1.10
+access-list 2 permit host 10.11.100.8
+access-list 2 permit host 10.12.1.10
+access-list 2 permit host 10.12.100.8
+line vty 0 14 <-- protecting telnet/ssh
+access-class 2 in
+
+CoreBABA:
+config T
+ip http server
+ip http secure-server
+
+http://10.11.1.4
+
+How to RESTRICT Access to WEB:
+ip http access-class 2
+
+
+TASK4: HOW TO PROTECT YOUR NETWORK SECURITY.
+1. withdraw 250k/Year from bank:
+Checkpoint
+Palo Alto
+Fortinet
+Cisco FirePower
+Juniper SRX
+2. Use your CCNA skills to build your own Packet Filter Firewall.
+
+step1: how to be a great CyberSecurity Engineer.
+make CUCM intentionally Hackable:
+config T
+service tcp-small-servers
+service udp-small-servers
+ip dns server
+ip http server
+ip http secure-server 
+ip host cm 10.11.100.8
+ip host cm2 10.11.100.9
+ip host pc 10.11.1.10
+ip host p1 10.11.100.101
+ip host p2 10.11.100.102
+interface Fa0/0
+ip address 10.11.100.9 255.255.255.0 Secondary
+end
+
+Task5: Make your own packet filter firewall bec. you can't 
+        afford 250k/year
+    
+ex.1 make a PFW1 THAT WILL ALLOW THIS POLICY:
+cm only open http, https
+cm2 only open dns, ssh
+FORMULA: "PROTOCOL: tcp,udp,icmp,IP   HACKER   VICTIM  PORT"
+@CUCM
+config T
+no ip access-list Extended PFW1
+ip access-list Extended PFW1
+permit tcp any host cm eq 80
+permit tcp any host cm eq 2000
+permit tcp any host cm2 eq 53
+permit tcp any host cm2 eq 22
+int fa0/0
+    ip access-group PFW1 in
+    do sh access-list PFW1
+
+    Ex2: make FP3 that will allow these:
+    cm will allow ping(icmp), sccp, dns, ssh = 4 lines
+    cm2 will only allow https:
+    config T
+    no ip access-list Extended FP2
+    ip access-list Extended FP2
+    Permit tcp any host cm eq 2000
+    Permit icmp any host cm eq 
+    Permit tcp any host cm eq 53
+    Permit tcp any host cm eq 22
+    Permit tcp any host cm eq 443
+    int fa0/0
+    ip access-group FP2 in
+    do sh access-list FP2
+
+    Ex3:construct FP3 that will meet:
+    cm allows ssh, telnet,dns = 3L
+    cm2 allows ping,http,https,dns = 4L
+    config T
+    no ip access-list Extended FP3
+    ip access-list Extended FP3
+    Permit tcp any host cm eq 22
+    Permit tcp any host cm eq 23
+    Permit tcp any host cm eq 53
+    permit icmp any host cm2
+    Permit tcp any host cm2 eq 80
+    permit tcp any host cm2 eq 53
+    Permit tcp any host cm2 eq 443
+    int fa0/0
+    ip access-group FP3 in
+    do sh access-list FP3
+
+Ex4:construct FP4 that will meet:
+    cm allows ping,80
+    cm2 allows ping,53
+   config T
+    no ip access-list Extended FP4
+    ip access-list Extended FP4
+    Permit tcp any host cm eq 80
+    Permit tcp any host cm2 eq 53
+    permit icmp any host cm
+    permit icmp any host cm2
+    int fa0/0
+    ip access-group FP4 in
+    do sh access-list FP4
+
+    Ex5:Multiple hackers multiple victims:
+    pc allow ping,80 on cm
+    pc allow telnet on cm2
+    p1 allow sccp on cm
+    p2 allow ping cm2
+     config T
+    no ip access-list Extended FP5
+    ip access-list Extended FP5
+    Permit tcp host pc host cm eq 80
+    Permit tcp host pc host cm eq 23
+    permit icmp host pc host cm
+    Permit tcp host p1 host cm eq 2000
+    permit icmp host p2 host cm2
+    int fa0/0
+    ip access-group FP5 in
+    do sh access-list FP5
+
+     Ex6:Multiple hackers multiple victims:
+        pc allow telnet on cm
+        pc allow ping on cm2
+        p1 allow ping on cm
+        p2 allow sccp cm
+  config T
+    no ip access-list Extended FP6
+    ip access-list Extended FP6
+    Permit tcp host pc host cm eq 23
+    permit icmp host pc host cm2
+    Permit tcp any host cm eq 2000
+    Permit tcp any host cm2 eq 2000
+    permit icmp host p1 host cm
+    int fa0/0
+    ip access-group FP6 in
+    do sh access-list FP6
+
+
+    Task7: 4th Laboratory in your exam:
+    Network Time Protocol:
+    Edge: ntp master/time keeper.
+    config T
+    ntp master
+    ntp source gi0/0/0
+    int gi 0/0/0
+    ntp broadcast
+Corebaba: / cucm
+config T
+ntp server 10.11.11.1
+end
+show clock (30 sec)
+
+
+TASK8: LEARNING THE FOUR LABORATORY in EXAM:
+lab1: give all ip address:
+to VMWARE NATPROXY:
+conf T
+int gi1
+ip add 192.168.108.8 255.255.255.0
+no shut
+int gi3
+ip add 192.168.102.8 255.255.255.0
+no shut
+ip route 0.0.0.0 0.0.0.0 192.168.108.2
+ip domain-lookup
+ip name-server 1.1.1.1
+end
+
+Task9: Make Cisco a Internet Server Using NAT: "DYNAMIC WAY"
+step1: create an access list to allow:
+gi 2: 192.168.101.8 and gi3: 192.168.102.8
+config T
+no access-list 1 
+access-list 1 permit 192.168.101.0 0.0.0.255
+access-list 1 permit 192.168.102.0 0.0.0.255
+do sh access-list 1
+
+step2: define Outside: Give internet Connection
+            Inside: Get/Receive internet Connection
+    config T
+    int gi1
+    ip nat Outside
+    int gi2
+    ip nat Inside
+    int gi3
+    ip nat Inside
+
+step 3: Create a NAT dynamic and static pool with Overload
+dynamic: give internet automically.
+config T
+ip nat inside source list 1 interface gi 1 Overload
+ping www.nba.com source 192.168.102.8
+ping www.fb.com source 192.168.101.8
+
+Step4: Exam Possibility: Static NAT entries:
+config T
+ip nat inside source static 192.168.101.8 192.168.108.69
+ip nat inside source static 192.168.102.8 192.168.108.88
+do show ip nat translations
+
+Definition of terms
+Inside Global ,     Inside Local   Outside local , outside Global
+GiveNatIPaddress    GetPrivateIP    www.fb.com       www.fb.com
+
+Task8: DHCP SERVER WITH LINUX CLIENTS.
+NATPROXY:
+config T
+ip dhcp excluded-add 192.168.101.1 192.168.101.150
+ip dhcp excluded-add 192.168.102.1 192.168.102.150
+ip dhcp pool g2 
+network 192.168.101.0 255.255.255.0
+default-router 192.168.101.8
+domain-name ccnaexam.com
+dns-server 1.1.1.1
+ip dhcp pool g3
+network 192.168.102.0 255.255.255.0
+default-router 192.168.102.8
+domain-name ccnaexam.com
+dns-server 1.1.1.1
+
+NTP:
+config t
+ip domain-lookup
+ip name-server 1.1.1.1
+ntp server time.google.com
+end
+show ntp associations
+show clock
+
+TASK9:
+66.254.114.41 > change to NA = 66.254.114.0
+192.124.249.52                  192.124.249.0
+23.40.252.243                   23.40.252.0
+config T
+no access-list 2
+access-list 2 deny 66.254.114.0 0.0.0.255
+access-list 2 deny 192.124.249.0 0.0.0.255
+access-list 2 deny 23.40.252.0 0.0.0.255
+access-list 2 deny 162.211.82.0 0.0.0.255
+access-list 2 deny 166.62.10.0 0.0.0.255
+access-list 2 deny  104.22.41.0 0.0.0.255
+access-list 2 permit any
+int gi1
+ip access-group 2 in
+
+TASK10: SSH IN CSR 1000V:
+do nothing
+git clone https://github.com/rivancorp/encord1
